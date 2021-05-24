@@ -1,5 +1,4 @@
-import { FC } from 'react';
-declare const App: FC<{
-    name?: string;
-}>;
+import { FC } from "react";
+import { TCliOptions } from "./state";
+declare const App: FC<Partial<TCliOptions>>;
 export default App;

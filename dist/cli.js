@@ -20,9 +20,12 @@ const cli = meow_1.default(`
 	  Hello, Jane
 `, {
     flags: {
-        name: {
+        url: {
+            type: 'string'
+        },
+        chain: {
             type: 'string'
         }
     }
 });
-ink_1.render(react_1.default.createElement(ui_1.default, { name: cli.flags.name }));
+ink_1.render(react_1.default.createElement(ui_1.default, { url: cli.flags.url, chain: cli.flags.url }));

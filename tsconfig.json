@@ -5,7 +5,10 @@
 		"module": "commonjs",
 		"jsx": "react",
 		"esModuleInterop": true,
-		"outDir": "dist"
+		"outDir": "dist",
+		"experimentalDecorators": true,
+		"noUnusedLocals": false,
+		"noUnusedParameters": false
 	},
 	"include": ["source"]
 }

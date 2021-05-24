@@ -3,6 +3,7 @@ import React from 'react';
 import {render} from 'ink';
 import meow from 'meow';
 import App from './ui';
+import { ValidChains } from './state';
 
 const cli = meow(`
 	Usage
@@ -25,4 +26,4 @@ const cli = meow(`
 	}
 });
 
-render(<App url={cli.flags.url} chain={cli.flags.url}/>);
+render(<App url={cli.flags.url} chain={cli.flags.url as ValidChains}/>);

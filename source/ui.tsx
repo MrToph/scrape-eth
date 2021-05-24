@@ -1,18 +1,26 @@
-import React, { FC } from "react";
-import { Text } from "ink";
+import React, { FC, useEffect, useState } from "react";
+import { Text, useApp } from "ink";
 import { TCliOptions, useAppState } from "./state";
 
 const App: FC<Partial<TCliOptions>> = (cliOptions) => {
-	const [state, ] = useAppState(cliOptions);
-	if (!state.url) {
-		return;
+	const {exit} = useApp();
+	const [state, next] = useAppState(cliOptions);
+	useEffect(() => {
+		if(state.lastAction !== `END`) {
+			next();
+		}
+
+		// const keepAlive = setInterval(() => {}, 1000000);
+		// return () => {
+		// 	clearInterval(keepAlive);
+		// };
+	}, [state.lastAction]);
+
+	if (state.error) {
+		return <Text color="red">Error: {state.error}.</Text>;;
 	}
-	return (
-		<Text>
-			Hello, <Text color="green">{url}</Text>
-		</Text>
-	);
+
+	return <Text color="green">{state.config.url} tests passed</Text>;
 };
 
-module.exports = App;
 export default App;
