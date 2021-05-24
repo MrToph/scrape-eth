@@ -1,0 +1,11 @@
+{
+	"extends": "@sindresorhus/tsconfig",
+	"compilerOptions": {
+		// "target": "esnext",
+		"module": "commonjs",
+		"jsx": "react",
+		"esModuleInterop": true,
+		"outDir": "dist"
+	},
+	"include": ["source"]
+}
