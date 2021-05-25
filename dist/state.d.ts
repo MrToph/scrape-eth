@@ -11,6 +11,7 @@ export declare type TReducerAction<T> = {
 declare type TState = {
     lastAction: TActions;
     error: string;
+    info: string;
     config: TCliOptions;
 };
 export declare const useAppState: (options: Partial<TCliOptions>) => [TState, () => Promise<void>];

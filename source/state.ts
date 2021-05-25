@@ -1,4 +1,10 @@
 import { useState } from "react";
+import scrape from "website-scraper";
+import { URL } from "url";
+import fs from "fs";
+import path from "path";
+import os from "os";
+import glob from "glob";
 import { sleep } from "./utils";
 
 export type ValidChains = "eth" | "bsc";
@@ -18,13 +24,16 @@ export type TReducerAction<T> = { type: T; payload: any };
 type TState = {
 	lastAction: TActions;
 	error: string;
+	info: string;
 	config: TCliOptions;
 };
 const getDefaultState = (options: Partial<TCliOptions>): TState => ({
 	lastAction: `INIT`,
 	error: ``,
+	info: `Scraping ${options.url} ...`,
 	config: {
-		url: options.url || `https://yearn.finance/vaults`,
+		// url: options.url || `https://yearn.finance/vaults`,
+		url: options.url || `https://bdo.money`,
 		chain: options.chain || `eth`,
 	},
 });
@@ -55,8 +64,58 @@ async function reducer(
 			}
 
 			await sleep(5000);
+			let tmpDir = ``;
+			try {
+				tmpDir = await path.join(os.tmpdir(), "scrape-eth");
+				if (fs.existsSync(tmpDir)) {
+					fs.rmdirSync(tmpDir, { recursive: true });
+				}
+				const configUrl = new URL(state.config.url);
+				console.log(`configURL: ${configUrl.toString()} ${configUrl.hostname}`)
+				await scrape({
+					urls: [configUrl.toString()],
+					maxRecursiveDepth: 1, // for html resources
+					maxDepth: 3, // important to set otherwise badly coded sides with errors keep linking to broken SPA paths
+					directory: tmpDir,
+					// skip 3rd party websites
+					urlFilter: (url: string) => {
+						return url.includes(configUrl.hostname);
+					},
+					ignoreErrors: true, // in case some file cannot be downloaded, go through the others
+					recursive: true,
+				});
 
-			return { ...newState, config: { ...state.config, url: `cool` } };
+				let filesToCheck = glob.sync(path.join(tmpDir, `**/*.js`));
+				filesToCheck = filesToCheck.concat(
+					glob.sync(path.join(tmpDir, `**/*.html`))
+				);
+
+				// 40 hex chars enclosed by non word characters
+				let addresses: string[] = [];
+				for (const file of filesToCheck) {
+					const content = fs.readFileSync(file, `utf8`);
+					const regex = /\W(0x[a-fA-F0-9]{40})\W/g;
+					const matches = (content.match(regex) || []);
+					addresses.push(...matches.map(m => m.slice(1, -1)));
+				}
+				addresses = Array.from(new Set(addresses).values());
+
+				return {
+					...newState,
+					info: `files downloaded to ${tmpDir}.\n${filesToCheck.join(`\n`)}\n${addresses.join(`\n`)}`,
+				};
+			} catch (error) {
+				console.error(error);
+				return {
+					...newState,
+					error: error.message,
+					lastAction: `END`,
+				};
+			} finally {
+				if (tmpDir) {
+					fs.rmdirSync(tmpDir, { recursive: true });
+				}
+			}
 		}
 		case "END": {
 			return { ...newState };

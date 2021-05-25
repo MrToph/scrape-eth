@@ -20,7 +20,7 @@ const App: FC<Partial<TCliOptions>> = (cliOptions) => {
 		return <Text color="red">Error: {state.error}.</Text>;;
 	}
 
-	return <Text color="green">{state.config.url} tests passed</Text>;
+	return <Text color="lightblue">{state.info}</Text>;
 };
 
 export default App;

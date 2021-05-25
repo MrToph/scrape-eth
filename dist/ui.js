@@ -41,8 +41,6 @@ const App = (cliOptions) => {
             ".");
         ;
     }
-    return react_1.default.createElement(ink_1.Text, { color: "green" },
-        state.config.url,
-        " tests passed");
+    return react_1.default.createElement(ink_1.Text, { color: "lightblue" }, state.info);
 };
 exports.default = App;
