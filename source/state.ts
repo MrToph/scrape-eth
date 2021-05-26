@@ -5,12 +5,13 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import glob from "glob";
-import { sleep } from "./utils";
+import { removeAddresses, sleep } from "./utils";
+import { fetchContractsData, TContractData } from "./etherscan-api";
 
 export type ValidChains = "eth" | "bsc";
-export type TActions = "INIT" | "SCRAPE" | "END";
+export type TActions = "INIT" | "SCRAPE" | "FILTER" | "END";
 const getNextAction = (action: TActions) => {
-	const ordered: TActions[] = [`INIT`, `SCRAPE`, `END`];
+	const ordered: TActions[] = [`INIT`, `SCRAPE`, `FILTER`, `END`];
 	const currentIndex = ordered.findIndex((s) => s === action);
 	if (currentIndex < 0) throw new Error(`Invalid action "${action}"`);
 	if (currentIndex === ordered.length - 1)
@@ -25,15 +26,24 @@ type TState = {
 	lastAction: TActions;
 	error: string;
 	info: string;
+	result: {
+		addresses?: string[];
+		addressesData?: TContractData[];
+	};
 	config: TCliOptions;
 };
 const getDefaultState = (options: Partial<TCliOptions>): TState => ({
 	lastAction: `INIT`,
 	error: ``,
 	info: `Scraping ${options.url} ...`,
+	result: {
+		addresses: undefined,
+		addressesData: undefined,
+	},
 	config: {
-		// url: options.url || `https://yearn.finance/vaults`,
-		url: options.url || `https://bdo.money`,
+		// url: options.url || `https://yearn.finance`,
+		url: options.url || `https://compound.finance`,
+		// url: options.url || `https://bdo.money`,
 		chain: options.chain || `eth`,
 	},
 });
@@ -63,7 +73,6 @@ async function reducer(
 				};
 			}
 
-			await sleep(5000);
 			let tmpDir = ``;
 			try {
 				tmpDir = await path.join(os.tmpdir(), "scrape-eth");
@@ -71,7 +80,7 @@ async function reducer(
 					fs.rmdirSync(tmpDir, { recursive: true });
 				}
 				const configUrl = new URL(state.config.url);
-				console.log(`configURL: ${configUrl.toString()} ${configUrl.hostname}`)
+
 				await scrape({
 					urls: [configUrl.toString()],
 					maxRecursiveDepth: 1, // for html resources
@@ -95,14 +104,22 @@ async function reducer(
 				for (const file of filesToCheck) {
 					const content = fs.readFileSync(file, `utf8`);
 					const regex = /\W(0x[a-fA-F0-9]{40})\W/g;
-					const matches = (content.match(regex) || []);
-					addresses.push(...matches.map(m => m.slice(1, -1)));
+					const matches = content.match(regex) || [];
+					addresses.push(...matches.map((m) => m.slice(1, -1)));
 				}
 				addresses = Array.from(new Set(addresses).values());
+				addresses = removeAddresses(addresses);
+				addresses = addresses.sort((a, b) =>
+					a.toLowerCase().localeCompare(b.toLowerCase())
+				);
 
 				return {
 					...newState,
-					info: `files downloaded to ${tmpDir}.\n${filesToCheck.join(`\n`)}\n${addresses.join(`\n`)}`,
+					result: {
+						...newState.result,
+						addresses: addresses || [],
+					},
+					info: `Scraped website. Checking ${addresses.length} addresses ...`,
 				};
 			} catch (error) {
 				console.error(error);
@@ -115,6 +132,30 @@ async function reducer(
 				if (tmpDir) {
 					fs.rmdirSync(tmpDir, { recursive: true });
 				}
+			}
+		}
+		case "FILTER": {
+			try {
+				let addresses = newState.result.addresses!;
+				const contractData = await fetchContractsData(
+					addresses,
+					state.config.chain
+				);
+				return {
+					...newState,
+					result: {
+						...newState.result,
+						addressesData: contractData,
+					},
+					info: ``,
+				};
+			} catch (error) {
+				console.error(error);
+				return {
+					...newState,
+					error: error.message,
+					lastAction: `END`,
+				};
 			}
 		}
 		case "END": {
