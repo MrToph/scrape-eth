@@ -11,11 +11,12 @@ const cli = meow(
 	  $ scrape-eth
 
 	Options
-		--name  Your name
+		--url  	URL to scrape
+		--chain	Optional chain to check contracts on. "eth" (default) or "bsc".
 
 	Examples
-	  $ scrape-eth --name=Jane
-	  Hello, Jane
+	  $ scrape-eth --url yearn.finance
+	  $ scrape-eth --url pancakeswap.finance --chain bsc
 `,
 	{
 		flags: {
@@ -34,6 +35,6 @@ const options = {
 };
 
 render(
-	<App url={cli.flags.url} chain={cli.flags.url as ValidChains} />,
+	<App url={cli.flags.url} chain={cli.flags.chain as ValidChains} />,
 	options
 );

@@ -95,7 +95,7 @@ export const fetchContractsData = async (
 		addresses,
 		(addr) =>
 			retry(async (bail: any) => fetchContractData(addr, chain), {
-				retries: 5,
+				retries: 10,
 			}).catch((error: any) => {
 				return {
 					address: addr,

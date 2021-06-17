@@ -41,9 +41,7 @@ const getDefaultState = (options: Partial<TCliOptions>): TState => ({
 		addressesData: undefined,
 	},
 	config: {
-		// url: options.url || `https://yearn.finance`,
-		url: options.url || `https://compound.finance`,
-		// url: options.url || `https://bdo.money`,
+		url: options.url || ``,
 		chain: options.chain || `eth`,
 	},
 });
@@ -79,7 +77,9 @@ async function reducer(
 				if (fs.existsSync(tmpDir)) {
 					fs.rmdirSync(tmpDir, { recursive: true });
 				}
-				const configUrl = new URL(state.config.url);
+				let url = state.config.url;
+				if (!url.startsWith(`http`)) url = `https://${url}`;
+				const configUrl = new URL(url);
 
 				await scrape({
 					urls: [configUrl.toString()],
@@ -113,6 +113,14 @@ async function reducer(
 					a.toLowerCase().localeCompare(b.toLowerCase())
 				);
 
+				const errorObj =
+					addresses.length == 0
+						? {
+								error: `No addresses found`,
+								lastAction: `END` as TActions,
+						  }
+						: {};
+
 				return {
 					...newState,
 					result: {
@@ -120,6 +128,7 @@ async function reducer(
 						addresses: addresses || [],
 					},
 					info: `Scraped website. Checking ${addresses.length} addresses ...`,
+					...errorObj,
 				};
 			} catch (error) {
 				console.error(error);
